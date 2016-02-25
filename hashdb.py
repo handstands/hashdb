@@ -6,14 +6,14 @@ import time
 import sqlite3
 import argparse
 
-extensions = ['.flv', '.mov', '.mp4', '.wmv', '.avi', '.mkv']
+default_extensions = ['.flv', '.mov', '.mp4', '.wmv', '.avi', '.mkv']
 
-def grabfiles(dirname):
+def grabfiles(dirname, extensions):
 	valid_files = []
 	for root, dirs, files in os.walk(dirname):
 		valid_files += [os.path.join(root, file_) for file_ in files if os.path.splitext(file_)[1] in extensions]
 		for dir_ in dirs:
-			valid_files += grabfiles(dir_)
+			valid_files += grabfiles(dir_, extensions)
 	return valid_files
 
 def gethash(filename):
@@ -50,10 +50,10 @@ def matchfiles(db):
 			print "Matching files: \"%s\"" % '", "'.join(r)
 	print "%d duplicate files for %d bytes." % (c, tot)
 
-def updatedb(basedir, db, quiet):
+def updatedb(basedir, db, quiet, extensions):
 	t_start = time.time()
 	bytes = 0
-	for f in grabfiles(basedir):
+	for f in grabfiles(basedir, extensions):
 		a = os.path.abspath(f)
 		try:
 			c = db.cursor().execute('SELECT mtime FROM entries WHERE path = ?', (a, )).fetchone()
@@ -82,6 +82,7 @@ parser.add_argument('-q', '--quiet', help='Quiet mode. Script will not output an
 parser.add_argument('-c', '--clean-up', help='Cleanup-mode. This remove every file from the database that cannot be found at it\'s location.', action='store_true', required=False, default=False)
 parser.add_argument('--skip-match', help='Hash only-mode. This makes it that only the file hashing process takes place and skips the matching.', action='store_true', required=False, default=False)
 parser.add_argument('--skip-hash', help='Match only-mode. This makes it that only the file matching process takes place and skips the hashing.', action='store_true', required=False, default=False)
+parser.add_argument('--extensions', help='A list of extensions the script should use in determining which files are to be hashed. Default extensions are %s. Setting this will override them.' % ', '.join(default_extensions), action='append', required=False, default=[], nargs='+')
 args = vars(parser.parse_args())
 
 if not os.path.exists(hashfile):
@@ -91,11 +92,16 @@ if not os.path.exists(hashfile):
 
 conn = sqlite3.connect(hashfile)
 
+if args['extensions']:
+	extensions = args['extensions']
+else:
+	extensions = default_extensions
+
 if args['clean_up']:
 	prunedeadwood(conn, args['quiet'])
 
 if not args['skip_hash']:
-	s, t = updatedb(args['directory'], conn, args['quiet'])
+	s, t = updatedb(args['directory'], conn, args['quiet'], extensions)
 	if s:
 		print "Hashed %d bytes in %d seconds. %d bytes/second." % (s, t, s/t)
 
