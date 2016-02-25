@@ -25,6 +25,8 @@ def gethash(filename):
 	h.update(d)
 	return h.hexdigest()
 
+def prunedeadwood(db):
+	pass
 
 def updatedb(basedir, db, quiet):
 	t_start = time.time()
@@ -60,6 +62,7 @@ hashfile = os.path.expanduser("~/.hashdb.db")
 parser = argparse.ArgumentParser(description='This is a script designed to create a persistent database of file hashes to aid in the detection of undesirable duplicates.')
 parser.add_argument('-d', '--directory', help='Base directory from which all the children are to be scanned.', required=True)
 parser.add_argument('-q', '--quiet', help='Quiet mode. Script will not output anything related on ongoing hashing operations.', required=False, default=False, action='store_true')
+parser.add_argument('-c', '--clean-up', help='Cleanup-mode. This skips the hashing process and will remove every file from the database that cannot be found at it\'s location.', action='store_true', required=False, default=False)
 args = vars(parser.parse_args())
 
 if not os.path.exists(hashfile):
@@ -68,10 +71,15 @@ if not os.path.exists(hashfile):
 	conn.commit()
 
 conn = sqlite3.connect(hashfile)
+
+if args['clean_up']:
+	prunedeadwood(conn)
+
 s, t = updatedb(args['directory'], conn, args['quiet'])
 
 if s:
 	print "Hashed %d bytes in %d seconds. %d bytes/second." % (s, t, s/t)
+	
 c, tot = 0, 0
 u_hex = conn.cursor().execute('SELECT DISTINCT(hex) FROM entries').fetchall()
 for hx, in u_hex:
