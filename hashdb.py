@@ -53,7 +53,6 @@ def matchfiles(db):
 def updatedb(basedir, db, quiet):
 	t_start = time.time()
 	bytes = 0
-	db.cursor().execute('UPDATE entries SET chk = 0')
 	for f in grabfiles(basedir):
 		a = os.path.abspath(f)
 		try:
@@ -65,18 +64,14 @@ def updatedb(basedir, db, quiet):
 			if not quiet:
 				print "[%s]: %s" % (time.ctime(), a)
 			bytes += os.stat(f).st_size
-			db.cursor().execute('INSERT INTO entries (hex, mtime, path, chk) VALUES(?,?,?,?)', (gethash(f), os.path.getmtime(f), a, 1))
+			db.cursor().execute('INSERT INTO entries (hex, mtime, path) VALUES(?,?,?)', (gethash(f), os.path.getmtime(f), a))
 			db.commit()
 		elif os.path.getmtime(f) > c[0]:
 			if not quiet:
 				print "[%s]: %s" % (time.ctime(), a)
 			bytes += os.stat(f).st_size
-			db.cursor().execute('UPDATE entries SET hex = ?, mtime = ?, chk = ? WHERE path = ?', (gethash(f), os.path.getmtime(f), 1, a))
+			db.cursor().execute('UPDATE entries SET hex = ?, mtime = ? WHERE path = ?', (gethash(f), os.path.getmtime(f), a))
 			db.commit()
-		else:
-			pass
-			#db.cursor().execute('UPDATE entries SET chk = 1 WHERE path = ?', (a,))
-			#db.commit()
 	return bytes, time.time()-t_start
 
 hashfile = os.path.expanduser("~/.hashdb.db")
@@ -91,7 +86,7 @@ args = vars(parser.parse_args())
 
 if not os.path.exists(hashfile):
 	conn = sqlite3.connect(hashfile)
-	conn.cursor().execute('CREATE TABLE entries (hex, mtime INTEGER, path, chk INTEGER)')
+	conn.cursor().execute('CREATE TABLE entries (hex, mtime INTEGER, path)')
 	conn.commit()
 
 conn = sqlite3.connect(hashfile)
