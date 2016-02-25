@@ -28,7 +28,7 @@ def gethash(filename):
 	return h.hexdigest()
 
 
-def updatedb(basedir, db):
+def updatedb(basedir, db, quiet):
 	t_start = time.time()
 	bytes = 0
 	db.cursor().execute('UPDATE entries SET chk = 0')
@@ -40,12 +40,14 @@ def updatedb(basedir, db):
 			print "Error: %s" % a
 			continue
 		if not c:
-			print "[%s]: %s" % (time.ctime(), a)
+			if not quiet:
+				print "[%s]: %s" % (time.ctime(), a)
 			bytes += os.stat(f).st_size
 			db.cursor().execute('INSERT INTO entries (hex, mtime, path, chk) VALUES(?,?,?,?)', (gethash(f), os.path.getmtime(f), a, 1))
 			db.commit()
 		elif os.path.getmtime(f) > c[0]:
-			print "[%s]: %s" % (time.ctime(), a)
+			if not quiet:
+				print "[%s]: %s" % (time.ctime(), a)
 			bytes += os.stat(f).st_size
 			db.cursor().execute('UPDATE entries SET hex = ?, mtime = ?, chk = ? WHERE path = ?', (gethash(f), os.path.getmtime(f), 1, a))
 			db.commit()
@@ -58,8 +60,8 @@ def updatedb(basedir, db):
 hashfile = os.path.expanduser("~/.hashdb.db")
 
 parser = argparse.ArgumentParser(description='This is a script designed to create a persistent database of file hashes to aid in the detection of undesirable duplicates.')
-parser.add_argument('-d','--directory', help='Base directory from which all the children are to be scanned.',required=True)
-
+parser.add_argument('-d', '--directory', help='Base directory from which all the children are to be scanned.', required=True)
+parser.add_argument('-q', '--quiet', help='Quiet mode. Script will not output anything related on ongoing hashing operations.', required=False, default=False, action='store_true')
 args = vars(parser.parse_args())
 
 if not os.path.exists(hashfile):
@@ -68,7 +70,7 @@ if not os.path.exists(hashfile):
 	conn.commit()
 
 conn = sqlite3.connect(hashfile)
-s, t = updatedb(args['directory'], conn)
+s, t = updatedb(args['directory'], conn, args['quiet'])
 
 if s:
 	print "Hashed %d bytes in %d seconds. %d bytes/second." % (s, t, s/t)
