@@ -6,7 +6,6 @@ import time
 import sqlite3
 #base = '.'
 base = '/data/misc/'
-sqldb = 'hashdb.sql'
 extensions = ['.flv', '.mov', '.mp4', '.wmv', '.avi', '.mkv']
 
 def grabfiles(dirname):
@@ -55,13 +54,14 @@ def updatedb(basedir, db):
 			#db.commit()
 	return bytes, time.time()-t_start
 
+hashfile = os.path.expanduser("~/.hashdb.db")
 
-if not os.path.exists(sqldb):
-	conn = sqlite3.connect(sqldb)
+if not os.path.exists(hashfile):
+	conn = sqlite3.connect(hashfile)
 	conn.cursor().execute('CREATE TABLE entries (hex, mtime INTEGER, path, chk INTEGER)')
 	conn.commit()
 
-conn = sqlite3.connect(sqldb)
+conn = sqlite3.connect(hashfile)
 s, t = updatedb(base, conn)
 
 if s:
