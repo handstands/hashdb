@@ -4,7 +4,8 @@ import os.path
 import hashlib
 import time
 import sqlite3
-#base = '.'
+import argparse
+
 base = '/data/misc/'
 extensions = ['.flv', '.mov', '.mp4', '.wmv', '.avi', '.mkv']
 
@@ -56,13 +57,18 @@ def updatedb(basedir, db):
 
 hashfile = os.path.expanduser("~/.hashdb.db")
 
+parser = argparse.ArgumentParser(description='This is a script designed to create a persistent database of file hashes to aid in the detection of undesirable duplicates.')
+parser.add_argument('-d','--directory', help='Base directory from which all the children are to be scanned.',required=True)
+
+args = vars(parser.parse_args())
+
 if not os.path.exists(hashfile):
 	conn = sqlite3.connect(hashfile)
 	conn.cursor().execute('CREATE TABLE entries (hex, mtime INTEGER, path, chk INTEGER)')
 	conn.commit()
 
 conn = sqlite3.connect(hashfile)
-s, t = updatedb(base, conn)
+s, t = updatedb(args['directory'], conn)
 
 if s:
 	print "Hashed %d bytes in %d seconds. %d bytes/second." % (s, t, s/t)
