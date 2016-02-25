@@ -11,7 +11,7 @@ extensions = ['.flv', '.mov', '.mp4', '.wmv', '.avi', '.mkv']
 def grabfiles(dirname):
 	valid_files = []
 	for root, dirs, files in os.walk(dirname):
-		valid_files = [os.path.join(root, file_) for file_ in files if os.path.splitext(file_)[1] in extensions]
+		valid_files += [os.path.join(root, file_) for file_ in files if os.path.splitext(file_)[1] in extensions]
 		for dir_ in dirs:
 			valid_files += grabfiles(dir_)
 	return valid_files
@@ -80,8 +80,8 @@ parser = argparse.ArgumentParser(description='This is a script designed to creat
 parser.add_argument('-d', '--directory', help='Base directory from which all the children are to be scanned.', required=True)
 parser.add_argument('-q', '--quiet', help='Quiet mode. Script will not output anything related on ongoing hashing operations.', required=False, default=False, action='store_true')
 parser.add_argument('-c', '--clean-up', help='Cleanup-mode. This remove every file from the database that cannot be found at it\'s location.', action='store_true', required=False, default=False)
-parser.add_argument('--hash', help='Hash only-mode. This makes it that only the file hashing process takes place and skips the matching.', action='store_true', required=False, default=False)
-parser.add_argument('-m', '--match', help='Match only-mode. This makes it that only the file matching process takes place and skips the hashing.', action='store_true', required=False, default=False)
+parser.add_argument('--skip-match', help='Hash only-mode. This makes it that only the file hashing process takes place and skips the matching.', action='store_true', required=False, default=False)
+parser.add_argument('--skip-hash', help='Match only-mode. This makes it that only the file matching process takes place and skips the hashing.', action='store_true', required=False, default=False)
 args = vars(parser.parse_args())
 
 if not os.path.exists(hashfile):
@@ -94,10 +94,10 @@ conn = sqlite3.connect(hashfile)
 if args['clean_up']:
 	prunedeadwood(conn, args['quiet'])
 
-if not args['match']:
+if not args['skip_hash']:
 	s, t = updatedb(args['directory'], conn, args['quiet'])
 	if s:
 		print "Hashed %d bytes in %d seconds. %d bytes/second." % (s, t, s/t)
 
-if not args['hash']:
+if not args['skip_match']:
 	matchfiles(conn)
