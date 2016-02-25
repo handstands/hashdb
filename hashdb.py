@@ -6,7 +6,6 @@ import time
 import sqlite3
 import argparse
 
-base = '/data/misc/'
 extensions = ['.flv', '.mov', '.mp4', '.wmv', '.avi', '.mkv']
 
 def grabfiles(dirname):
