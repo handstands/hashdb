@@ -25,8 +25,16 @@ def gethash(filename):
 	h.update(d)
 	return h.hexdigest()
 
-def prunedeadwood(db):
-	pass
+def prunedeadwood(db, quiet):
+	c = 0
+	for entry, in db.cursor().execute('SELECT path FROM entries'):
+		if not os.path.exists(entry):
+			if not quiet:
+				print "%s not found. Removing." % entry
+			db.cursor().execute('DELETE FROM entries WHERE path = ?', (entry, ))
+			conn.commit()
+			c += 1
+	print "%d entries removed." % c
 
 def updatedb(basedir, db, quiet):
 	t_start = time.time()
@@ -73,7 +81,7 @@ if not os.path.exists(hashfile):
 conn = sqlite3.connect(hashfile)
 
 if args['clean_up']:
-	prunedeadwood(conn)
+	prunedeadwood(conn, args['quiet'])
 
 s, t = updatedb(args['directory'], conn, args['quiet'])
 
