@@ -10,14 +10,12 @@ base = '/data/misc/'
 extensions = ['.flv', '.mov', '.mp4', '.wmv', '.avi', '.mkv']
 
 def grabfiles(dirname):
-	files = []
-	for entry in os.listdir(dirname):
-		n = os.path.join(dirname, entry)
-		if os.path.isdir(n) and entry != "lost+found":
-			files += grabfiles(n)
-		elif os.path.splitext(entry)[1] in extensions:
-			files.append(n)
-	return files		
+	valid_files = []
+	for root, dirs, files in os.walk(dirname):
+		valid_files = [os.path.join(root, file_) for file_ in files if os.path.splitext(file_)[1] in extensions]
+		for dir_ in dirs:
+			valid_files += grabfiles(dir_)
+	return valid_files
 
 def gethash(filename):
 	h  = hashlib.sha1()
