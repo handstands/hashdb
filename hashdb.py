@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 import os.path
 import hashlib
@@ -18,9 +18,8 @@ def grabfiles(dirname, extensions):
 
 def gethash(filename):
 	h  = hashlib.sha1()
-	f = open(filename)
-	d = f.read()
-	f.close()
+	with open(filename, 'r') as f:
+		d = f.read()
 	h.update(d)
 	return h.hexdigest()
 
@@ -29,11 +28,11 @@ def prunedeadwood(db, quiet):
 	for entry, in db.cursor().execute('SELECT path FROM entries'):
 		if not os.path.exists(entry):
 			if not quiet:
-				print "%s not found. Removing." % entry
+				print("%s not found. Removing." % entry)
 			db.cursor().execute('DELETE FROM entries WHERE path = ?', (entry, ))
 			conn.commit()
 			c += 1
-	print "%d entries removed." % c
+	print("%d entries removed." % c)
 
 def matchfiles(db):
 	c, tot = 0, 0
@@ -47,8 +46,8 @@ def matchfiles(db):
 				if os.path.exists(p):
 					tot += (len(r)-1)*os.stat(p).st_size
 					break
-			print "Matching files: \"%s\"" % '", "'.join(r)
-	print "%d duplicate files for %d bytes." % (c, tot)
+			print("Matching files: \"%s\"" % '", "'.join(r))
+	print("%d duplicate files for %d bytes." % (c, tot))
 
 def updatedb(basedir, db, quiet, extensions):
 	t_start = time.time()
@@ -58,17 +57,17 @@ def updatedb(basedir, db, quiet, extensions):
 		try:
 			c = db.cursor().execute('SELECT mtime FROM entries WHERE path = ?', (a, )).fetchone()
 		except sqlite3.ProgrammingError:
-			print "Error: %s" % a
+			print("Error: %s" % a)
 			continue
 		if not c:
 			if not quiet:
-				print "[%s]: %s" % (time.ctime(), a)
+				print("[%s]: %s" % (time.ctime(), a))
 			bytes += os.stat(f).st_size
 			db.cursor().execute('INSERT INTO entries (hex, mtime, path) VALUES(?,?,?)', (gethash(f), os.path.getmtime(f), a))
 			db.commit()
 		elif os.path.getmtime(f) > c[0]:
 			if not quiet:
-				print "[%s]: %s" % (time.ctime(), a)
+				print("[%s]: %s" % (time.ctime(), a))
 			bytes += os.stat(f).st_size
 			db.cursor().execute('UPDATE entries SET hex = ?, mtime = ? WHERE path = ?', (gethash(f), os.path.getmtime(f), a))
 			db.commit()
@@ -98,12 +97,12 @@ else:
 	extensions = default_extensions
 
 if args['clean_up']:
-	prunedeadwood(conn, args['quiet'])
+	prunedeadwood(conn, args['quiet']) 
 
 if not args['skip_hash']:
 	s, t = updatedb(args['directory'], conn, args['quiet'], extensions)
 	if s:
-		print "Hashed %d bytes in %d seconds. %d bytes/second." % (s, t, s/t)
+		print("Hashed %d bytes in %d seconds. %d bytes/second." % (s, t, s/t))
 
 if not args['skip_match']:
 	matchfiles(conn)
