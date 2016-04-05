@@ -16,11 +16,18 @@ def grabfiles(dirname, extensions):
 			valid_files += grabfiles(dir_, extensions)
 	return valid_files
 
+def filechunk(file_object, chunk):
+	while True:
+		data = file_object.read(chunk)
+		if not data:
+			break
+		yield data
+
 def gethash(filename):
 	h  = hashlib.sha1()
-	with open(filename, 'r') as f:
-		d = f.read()
-	h.update(d)
+	with open(filename, 'rb') as f:
+		for block in filechunk(f, 4096):
+			h.update(block)
 	return h.hexdigest()
 
 def prunedeadwood(db, quiet):
